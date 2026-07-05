@@ -58,6 +58,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    if (text.startsWith('/currentprice')) {
+      const { data, error } = await supabase.from('items').select('name, current_price, platform').order('platform', { ascending: true });
+      if (error || !data || data.length === 0) {
+        await sendTelegramAlert('You are not tracking any items right now.');
+        return NextResponse.json({ ok: true });
+      }
+
+      // Group by platform
+      const grouped: Record<string, typeof data> = {};
+      data.forEach(item => {
+        if (!grouped[item.platform]) grouped[item.platform] = [];
+        grouped[item.platform].push(item);
+      });
+
+      let responseText = '🛒 <b>Current Prices</b>\n\n';
+      for (const [platform, items] of Object.entries(grouped)) {
+        const platformName = platform === 'swiggy' ? 'Swiggy Instamart' : platform.charAt(0).toUpperCase() + platform.slice(1);
+        responseText += `🏬 <b>${platformName}</b>\n`;
+        items.forEach(item => {
+          responseText += `• ${item.name}: <b>₹${item.current_price}</b>\n`;
+        });
+        responseText += '\n';
+      }
+
+      await sendTelegramAlert(responseText);
+      return NextResponse.json({ ok: true });
+    }
+
     if (text.startsWith('/delete')) {
       // Fetch items to display in inline keyboard
       const { data, error } = await supabase.from('items').select('id, name').order('created_at', { ascending: false }).limit(20);
