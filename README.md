@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Grocery Price Drop Alert System
 
-## Getting Started
+A full-stack system that tracks prices for grocery items on Blinkit, Zepto, and Swiggy Instamart and sends a Telegram alert whenever a tracked item's price changes.
 
-First, run the development server:
+## Setup Instructions
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### 1. Database Setup (Supabase)
+1. Create a new Supabase project (free tier is sufficient).
+2. Go to the SQL Editor and run the following schema to create the required tables:
+
+```sql
+create table items (
+  id uuid primary key default gen_random_uuid(),
+  url text not null,
+  platform text not null check (platform in ('blinkit', 'zepto', 'swiggy')),
+  name text,
+  current_price numeric,
+  last_price numeric,
+  first_seen_price numeric,
+  in_stock boolean default true,
+  last_checked timestamptz default now(),
+  created_at timestamptz default now()
+);
+
+create table price_history (
+  id uuid primary key default gen_random_uuid(),
+  item_id uuid references items(id) on delete cascade,
+  price numeric,
+  checked_at timestamptz default now()
+);
 ```
+3. Copy your `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (from Project Settings -> API) into your environment variables.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Telegram Bot Setup
+1. Open Telegram and search for `@BotFather`.
+2. Send `/newbot` and follow the instructions to create a bot. Note down the `TELEGRAM_BOT_TOKEN`.
+3. Start a chat with your new bot and send a message.
+4. Visit `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates` in your browser to find your `chat_id`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Vercel Deployment (Webapp)
+1. Deploy this Next.js app to Vercel (Hobby tier is fine).
+2. Set the following Environment Variables in the Vercel dashboard:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `LOCATION_PINCODE` (optional, for platforms that need it)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. GitHub Actions Setup (Cron Job)
+1. In your GitHub repository, go to Settings -> Secrets and variables -> Actions.
+2. Add the following Repository Secrets:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `TELEGRAM_BOT_TOKEN`
+   - `TELEGRAM_CHAT_ID`
+   - `LOCATION_PINCODE` (optional)
+3. The scheduled cron job will run every 30 minutes to check prices.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Maintenance Note
+**IMPORTANT:** The platform scraping logic (in `lib/fetchers/`) extracts pricing from the embedded JSON in the page HTML of Blinkit, Zepto, and Swiggy Instamart. These selectors and JSON paths **will break** when the sites update their frontend. The scraper code will require periodic maintenance to remain functional.
