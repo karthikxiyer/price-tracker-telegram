@@ -26,11 +26,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true }); 
     }
 
-    const text = update.message.text;
+    const text = update.message.text.trim();
+
+    if (text.startsWith('/list')) {
+      const { data, error } = await supabase.from('items').select('*').order('created_at', { ascending: false });
+      if (error || !data || data.length === 0) {
+        await sendTelegramAlert('You are not tracking any items right now.');
+        return NextResponse.json({ ok: true });
+      }
+      const listText = data.map((item, i) => `${i + 1}. <b>${item.name}</b> (₹${item.current_price})\n🔗 <a href="${item.url}">Link</a>`).join('\n\n');
+      await sendTelegramAlert(`📋 <b>Tracked Items:</b>\n\n${listText}\n\n<i>To delete an item, reply with:</i>\n/delete <url>`);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (text.startsWith('/delete')) {
+      const deleteUrlMatch = text.match(/https?:\/\/[^\s]+/);
+      if (!deleteUrlMatch) {
+        await sendTelegramAlert('Please provide the URL to delete. Example:\n/delete https://swiggy.com/...');
+        return NextResponse.json({ ok: true });
+      }
+      const { error } = await supabase.from('items').delete().eq('url', deleteUrlMatch[0]);
+      if (error) {
+        await sendTelegramAlert('Failed to delete item from database.');
+      } else {
+        await sendTelegramAlert('🗑️ Item successfully deleted from tracking!');
+      }
+      return NextResponse.json({ ok: true });
+    }
+
     const urlMatch = text.match(/https?:\/\/[^\s]+/);
 
     if (!urlMatch) {
-      await sendTelegramAlert('I only understand product URLs! Please paste a supported store link.');
+      await sendTelegramAlert('I only understand product URLs or commands like /list and /delete. Please paste a supported store link.');
       return NextResponse.json({ ok: true });
     }
 
