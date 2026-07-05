@@ -43,6 +43,7 @@ async function run() {
       }
       
       const { price: newPrice, inStock } = await fetcher(item.url);
+      console.log(`Fetched price: ${newPrice}, DB price: ${item.current_price}`);
       
       if (newPrice !== item.current_price) {
         const direction = newPrice < item.current_price ? '🔻' : '🔺';
