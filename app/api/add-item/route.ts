@@ -3,6 +3,9 @@ import { supabase } from '@/lib/supabase';
 import { fetchBlinkitPrice } from '@/lib/fetchers/blinkit';
 import { fetchZeptoPrice } from '@/lib/fetchers/zepto';
 import { fetchSwiggyInstamartPrice } from '@/lib/fetchers/swiggy';
+import { fetchAmazonPrice } from '@/lib/fetchers/amazon';
+import { fetchFlipkartPrice } from '@/lib/fetchers/flipkart';
+import { fetchBigbasketPrice } from '@/lib/fetchers/bigbasket';
 
 export async function POST(request: Request) {
   try {
@@ -15,14 +18,23 @@ export async function POST(request: Request) {
     let fetcher = null;
 
     if (url.includes('blinkit.com')) {
-      platform = 'blinkit';
+      platform = 'Blinkit';
       fetcher = fetchBlinkitPrice;
     } else if (url.includes('zeptonow.com') || url.includes('zepto.com')) {
-      platform = 'zepto';
+      platform = 'Zepto';
       fetcher = fetchZeptoPrice;
-    } else if (url.includes('swiggy.com/instamart') || url.includes('swiggy.com')) {
-      platform = 'swiggy';
+    } else if (url.includes('swiggy.com')) {
+      platform = 'Swiggy Instamart';
       fetcher = fetchSwiggyInstamartPrice;
+    } else if (url.includes('amazon.in') || url.includes('amazon.com')) {
+      platform = 'Amazon';
+      fetcher = fetchAmazonPrice;
+    } else if (url.includes('flipkart.com')) {
+      platform = 'Flipkart';
+      fetcher = fetchFlipkartPrice;
+    } else if (url.includes('bigbasket.com')) {
+      platform = 'Bigbasket';
+      fetcher = fetchBigbasketPrice;
     } else {
       return NextResponse.json({ error: 'Unsupported platform' }, { status: 400 });
     }

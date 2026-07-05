@@ -6,6 +6,9 @@ import { sendTelegramAlert } from '../lib/telegram';
 import { fetchBlinkitPrice } from '../lib/fetchers/blinkit';
 import { fetchZeptoPrice } from '../lib/fetchers/zepto';
 import { fetchSwiggyInstamartPrice } from '../lib/fetchers/swiggy';
+import { fetchAmazonPrice } from '../lib/fetchers/amazon';
+import { fetchFlipkartPrice } from '../lib/fetchers/flipkart';
+import { fetchBigbasketPrice } from '../lib/fetchers/bigbasket';
 
 // Load environment variables if running locally via dotenv (in Actions, they are set in env)
 // require('dotenv').config();
@@ -35,11 +38,29 @@ async function run() {
       console.log(`Checking ${item.platform} item: ${item.name || item.id}`);
       let fetcher;
       
-      switch (item.platform) {
-        case 'blinkit': fetcher = fetchBlinkitPrice; break;
-        case 'zepto': fetcher = fetchZeptoPrice; break;
-        case 'swiggy': fetcher = fetchSwiggyInstamartPrice; break;
-        default: continue;
+      switch (item.platform.toLowerCase()) {
+        case 'blinkit':
+          fetcher = fetchBlinkitPrice;
+          break;
+        case 'zepto':
+          fetcher = fetchZeptoPrice;
+          break;
+        case 'swiggy instamart':
+        case 'swiggy':
+          fetcher = fetchSwiggyInstamartPrice;
+          break;
+        case 'amazon':
+          fetcher = fetchAmazonPrice;
+          break;
+        case 'flipkart':
+          fetcher = fetchFlipkartPrice;
+          break;
+        case 'bigbasket':
+          fetcher = fetchBigbasketPrice;
+          break;
+        default:
+          console.log(`Unknown platform ${item.platform} for item ${item.id}`);
+          continue;
       }
       
       const { price: newPrice, inStock } = await fetcher(item.url);
