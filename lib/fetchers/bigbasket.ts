@@ -17,7 +17,7 @@ export async function fetchBigbasketPrice(url: string): Promise<{ name: string; 
     const name = nameMatch ? nameMatch[1].split('|')[0].trim() : 'Unknown Bigbasket Item';
     
     // Attempt to find schema.org/Product
-    const schemaMatch = html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s);
+    const schemaMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
     let price = 50;
     if (schemaMatch) {
       try {
