@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Price Tracker",
+  title: "QcomMeKitneKa",
   description: "Track grocery prices across Blinkit, Zepto, and Swiggy Instamart.",
 };
 

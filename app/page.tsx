@@ -73,7 +73,7 @@ export default function Home() {
   return (
     <main className={styles.container}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Price Tracker</h1>
+        <h1 className={styles.title}>QcomMeKitneKa</h1>
         <p className={styles.subtitle}>Track grocery prices across Blinkit, Zepto, and Swiggy Instamart.</p>
       </header>
 
