@@ -12,7 +12,7 @@ A full-stack system that tracks prices for grocery items on Blinkit, Zepto, and 
 create table items (
   id uuid primary key default gen_random_uuid(),
   url text not null,
-  platform text not null check (platform in ('blinkit', 'zepto', 'swiggy')),
+  platform text not null check (platform in ('blinkit', 'zepto', 'swiggy', 'amazon', 'flipkart', 'bigbasket')),
   name text,
   current_price numeric,
   last_price numeric,

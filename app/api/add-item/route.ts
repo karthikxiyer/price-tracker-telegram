@@ -18,22 +18,22 @@ export async function POST(request: Request) {
     let fetcher = null;
 
     if (url.includes('blinkit.com')) {
-      platform = 'Blinkit';
+      platform = 'blinkit';
       fetcher = fetchBlinkitPrice;
     } else if (url.includes('zeptonow.com') || url.includes('zepto.com')) {
-      platform = 'Zepto';
+      platform = 'zepto';
       fetcher = fetchZeptoPrice;
     } else if (url.includes('swiggy.com') || url.includes('instamart.in')) {
-      platform = 'Swiggy Instamart';
+      platform = 'swiggy';
       fetcher = fetchSwiggyInstamartPrice;
     } else if (url.includes('amazon.in') || url.includes('amazon.com')) {
-      platform = 'Amazon';
+      platform = 'amazon';
       fetcher = fetchAmazonPrice;
     } else if (url.includes('flipkart.com')) {
-      platform = 'Flipkart';
+      platform = 'flipkart';
       fetcher = fetchFlipkartPrice;
     } else if (url.includes('bigbasket.com')) {
-      platform = 'Bigbasket';
+      platform = 'bigbasket';
       fetcher = fetchBigbasketPrice;
     } else {
       return NextResponse.json({ error: 'Unsupported platform' }, { status: 400 });

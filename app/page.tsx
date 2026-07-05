@@ -127,8 +127,9 @@ export default function Home() {
                       </div>
                     </td>
                     <td>
-                      <span className={`${styles.platformBadge} ${styles[`platform-${item.platform}`]}`}>
-                        {item.platform}
+                      <span className={styles.badge} data-platform={item.platform}>
+                        {item.platform === 'swiggy' ? 'Swiggy Instamart' : 
+                         item.platform.charAt(0).toUpperCase() + item.platform.slice(1)}
                       </span>
                     </td>
                     <td className={styles.price}>

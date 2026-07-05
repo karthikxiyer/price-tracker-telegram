@@ -38,14 +38,13 @@ async function run() {
       console.log(`Checking ${item.platform} item: ${item.name || item.id}`);
       let fetcher;
       
-      switch (item.platform.toLowerCase()) {
+      switch (item.platform) {
         case 'blinkit':
           fetcher = fetchBlinkitPrice;
           break;
         case 'zepto':
           fetcher = fetchZeptoPrice;
           break;
-        case 'swiggy instamart':
         case 'swiggy':
           fetcher = fetchSwiggyInstamartPrice;
           break;
