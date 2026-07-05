@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     } else if (url.includes('zeptonow.com') || url.includes('zepto.com')) {
       platform = 'Zepto';
       fetcher = fetchZeptoPrice;
-    } else if (url.includes('swiggy.com')) {
+    } else if (url.includes('swiggy.com') || url.includes('instamart.in')) {
       platform = 'Swiggy Instamart';
       fetcher = fetchSwiggyInstamartPrice;
     } else if (url.includes('amazon.in') || url.includes('amazon.com')) {
