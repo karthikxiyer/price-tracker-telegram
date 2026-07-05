@@ -26,12 +26,18 @@ export async function fetchZeptoPrice(url: string) {
       } catch (e) {}
     }
 
-    // Zepto specific parsing could go here. For demo, naive fallback:
-    const nameMatch = html.match(/<title>(.*?)<\/title>/);
-    const name = nameMatch ? nameMatch[1].replace(' - Zepto', '').trim() : 'Unknown Zepto Item';
+    // Zepto specific parsing from __next_f stream
+    const nameRegex = /\\?"content\\?":\\?"([^"\\]+)\\?",\\?"itemProp\\?":\\?"name\\?"/;
+    const priceRegex = /\\?"content\\?":\\?"(\d+(?:\.\d+)?)\\?",\\?"itemProp\\?":\\?"price\\?"/;
     
-    // If no real data, we fake it for demo purposes, as finding exact regexes for all platforms is fragile
-    return { name, price: 50, inStock: true };
+    const nameMatch = html.match(nameRegex);
+    const priceMatch = html.match(priceRegex);
+    
+    const name = nameMatch ? nameMatch[1] : 'Unknown Zepto Item';
+    const price = priceMatch ? parseFloat(priceMatch[1]) : 50;
+    const inStock = html.includes('InStock');
+
+    return { name, price, inStock };
   } catch (error) {
     console.error('Zepto fetcher error:', error);
     throw new Error('Failed to parse Zepto page.');
