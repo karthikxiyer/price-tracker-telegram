@@ -1,57 +1,77 @@
-export async function fetchBlinkitPrice(url: string) {
-  // NOTE: These selectors and JSON paths WILL break when the site updates its frontend.
-  // This logic is fragile and may need periodic maintenance.
+import { chromium } from 'playwright';
+import { createContext } from './browser';
+
+/**
+ * Extracts the product ID from a Blinkit URL.
+ * Supports:
+ *   https://blinkit.com/prn/<slug>/prid/<id>
+ *   https://blinkit.com/.../prid/<id>
+ */
+function extractPrid(url: string): string | null {
+  const m = url.match(/prid\/([0-9]+)/);
+  return m ? m[1] : null;
+}
+
+export async function fetchBlinkitPrice(url: string): Promise<{ name: string; price: number; inStock: boolean }> {
+  const prid = extractPrid(url);
+
+  // Strategy 1: Direct internal API (no browser needed) — works when called from
+  //   within a browser session context. We use Playwright to make the page load
+  //   and intercept the API call it makes automatically.
+  const { browser, context } = await createContext();
+
   try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
-        'Accept-Language': 'en-US,en;q=0.5',
-      },
+    const page = await context.newPage();
+    let productData: { name: string; price: number; inStock: boolean } | null = null;
+
+    page.on('response', async (response) => {
+      const resUrl = response.url();
+      // Intercept the product layout API call Blinkit makes client-side
+      if (resUrl.includes('blinkit.com/v1/layout/product') && response.status() === 200) {
+        try {
+          const json = await response.json();
+          const raw = JSON.stringify(json);
+          // The structure: {"name":"...", "price": 300, "mrp": 350, "state": "available"}
+          const nameMatch = raw.match(/"name"\s*:\s*"([^"]{3,})".*?"price"\s*:\s*([0-9]+)/);
+          const priceMatch = raw.match(/"price"\s*:\s*([0-9]+(?:\.[0-9]+)?)/);
+          const nameMatch2 = raw.match(/"express".*?"name"\s*:\s*"([^"]{5,100})"/);
+          const inStock = !raw.includes('"state":"unavailable"') && !raw.includes('"out_of_stock":true');
+
+          let name = 'Unknown Blinkit Item';
+          let price = 0;
+
+          if (nameMatch) {
+            name = nameMatch[1];
+            price = parseFloat(nameMatch[2]);
+          } else if (priceMatch && nameMatch2) {
+            name = nameMatch2[1];
+            price = parseFloat(priceMatch[1]);
+          }
+
+          if (!productData && name !== 'Unknown Blinkit Item' && price > 0) {
+            productData = { name, price, inStock };
+          }
+        } catch { /* JSON parse failed */ }
+      }
     });
 
-    if (!res.ok) {
-      throw new Error(`Failed to fetch: ${res.statusText}`);
-    }
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    // Wait for client-side API calls to complete
+    await page.waitForTimeout(4000);
 
-    const html = await res.text();
-    
-    // Attempt to extract __NEXT_DATA__
-    const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
-    if (match) {
-      const json = JSON.parse(match[1]);
-      // Assuming Blinkit stores product info somewhere in props.pageProps.initialState
-      // Just a placeholder path, you'll need to adapt it when it breaks
-      // For now, let's also support fallback regex if JSON path is too deeply nested and changes often
-    }
+    if (productData) return productData;
 
-    // Fallback: look for generic LD+JSON schema
-    const schemaMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
-    if (schemaMatch) {
-      try {
-        const schema = JSON.parse(schemaMatch[1]);
-        if (schema['@type'] === 'Product' || (Array.isArray(schema) && schema.some(s => s['@type'] === 'Product'))) {
-          const product = Array.isArray(schema) ? schema.find(s => s['@type'] === 'Product') : schema;
-          const name = product.name;
-          const price = product.offers?.price ? parseFloat(product.offers.price) : 0;
-          const inStock = product.offers?.availability?.includes('InStock') ?? true;
-          if (name && price > 0) return { name, price, inStock };
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
+    // Fallback: read from the rendered DOM
+    const title = await page.title();
+    const name = title.replace(/Price\s*-\s*Buy Online.*$/i, '').replace(/\s*\|\s*Blinkit$/i, '').trim();
+    const priceEl = await page.$eval('[class*="Product__UpdatedPrice"], [class*="price"]', 
+      (el: HTMLElement) => el.textContent?.replace(/[^0-9.]/g, '') ?? '').catch(() => '');
+    const price = priceEl ? parseFloat(priceEl) : 0;
 
-    // Last resort naive fallback (demo only)
-    const nameMatch = html.match(/<title>(.*?)<\/title>/);
-    const name = nameMatch ? nameMatch[1].replace(' - Blinkit', '').trim() : 'Unknown Item';
-    // Price regex
-    const priceMatch = html.match(/₹\s*(\d+(\.\d+)?)/);
-    const price = priceMatch ? parseFloat(priceMatch[1]) : Math.floor(Math.random() * 100) + 10;
-    
+    if (!name || price === 0) throw new Error('Could not extract product details from Blinkit page');
+
     return { name, price, inStock: true };
-  } catch (error) {
-    console.error('Blinkit fetcher error:', error);
-    throw new Error('Failed to parse Blinkit page.');
+  } finally {
+    await browser.close();
   }
 }
